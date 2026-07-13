@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform-reference
+  namespace: argocd
+spec:
+  description: Sanitized platform reference project
+  sourceRepos:
+    - https://github.com/asim-altayb/production-platform-blueprints.git
+  destinations:
+    - namespace: payments-ref
+      server: https://kubernetes.default.svc
+    - namespace: observability
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace

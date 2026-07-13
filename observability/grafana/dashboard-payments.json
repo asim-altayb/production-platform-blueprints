@@ -1,0 +1,22 @@
+{
+  "title": "Payments API Reference",
+  "timezone": "browser",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Transfer completions",
+      "targets": [
+        { "expr": "rate(payments_transfers_completed_total[5m])" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP request rate",
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count[5m]))" }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}

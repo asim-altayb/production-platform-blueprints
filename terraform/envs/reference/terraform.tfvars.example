@@ -1,0 +1,5 @@
+project_id   = "example-project-not-real"
+region       = "europe-west1"
+network_name = "ref-platform"
+cluster_name = "ref-gke"
+secret_ids   = ["app-db-password", "app-jwt-hmac"]

@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments-api
+  namespace: argocd
+spec:
+  project: platform-reference
+  source:
+    repoURL: https://github.com/asim-altayb/production-platform-blueprints.git
+    targetRevision: main
+    path: k8s/overlays/reference
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: payments-ref
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

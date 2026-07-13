@@ -1,0 +1,56 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive terraform
+      - name: Terraform init + validate modules
+        working-directory: terraform/envs/reference
+        run: |
+          terraform init -backend=false
+          terraform validate
+      - name: YAML structure check
+        run: |
+          python3 - <<'PY'
+          import pathlib, sys
+          try:
+            import yaml
+          except ImportError:
+            import subprocess
+            subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'pyyaml', '-q'])
+            import yaml
+          roots = [pathlib.Path('k8s'), pathlib.Path('argocd'), pathlib.Path('observability')]
+          errors = 0
+          for root in roots:
+            for path in root.rglob('*'):
+              if path.suffix in {'.yaml', '.yml'}:
+                try:
+                  list(yaml.safe_load_all(path.read_text()))
+                  print('ok', path)
+                except Exception as e:
+                  errors += 1
+                  print('FAIL', path, e)
+          sys.exit(1 if errors else 0)
+          PY
+      - name: Secret pattern scan
+        run: |
+          set +e
+          hits=$(grep -RInE 'AKIA[0-9A-Z]{16}|BEGIN RSA PRIVATE KEY|BEGIN OPENSSH PRIVATE KEY|BEGIN PRIVATE KEY' \
+            --exclude-dir=.git --exclude-dir=.terraform . )
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "$hits"
+            echo "Potential secret material found" >&2
+            exit 1
+          fi
+          echo "No high-confidence secrets detected"
