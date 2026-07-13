@@ -8,4 +8,6 @@ crash.log
 .idea/
 .vscode/
 *.pem
-secrets/
+# never commit secret value dumps
+**/*-secrets.yaml
+**/sealed-secrets.local/
