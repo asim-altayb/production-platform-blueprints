@@ -43,14 +43,35 @@ jobs:
           PY
       - name: Secret pattern scan
         run: |
-          set +e
-          hits=$(grep -RInE 'AKIA[0-9A-Z]{16}|BEGIN RSA PRIVATE KEY|BEGIN OPENSSH PRIVATE KEY|BEGIN PRIVATE KEY' \
-            --exclude-dir=.git --exclude-dir=.terraform . )
-          status=$?
-          set -e
-          if [ "$status" -eq 0 ]; then
-            echo "$hits"
-            echo "Potential secret material found" >&2
-            exit 1
-          fi
-          echo "No high-confidence secrets detected"
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, sys
+          patterns = [
+              re.compile(r"AKIA[0-9A-Z]{16}"),
+              re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
+          ]
+          skip_parts = {".git", ".terraform", "node_modules"}
+          hits = []
+          for path in Path(".").rglob("*"):
+              if not path.is_file():
+                  continue
+              if any(part in skip_parts for part in path.parts):
+                  continue
+              if path.suffix in {".png", ".jpg", ".jar", ".zip"}:
+                  continue
+              # Skip this workflow file — it documents the patterns intentionally.
+              if path.as_posix().endswith(".github/workflows/ci.yml"):
+                  continue
+              try:
+                  text = path.read_text(errors="ignore")
+              except Exception:
+                  continue
+              for pat in patterns:
+                  if pat.search(text):
+                      hits.append(f"{path}: matched {pat.pattern}")
+          if hits:
+              print("\n".join(hits))
+              print("Potential secret material found", file=sys.stderr)
+              sys.exit(1)
+          print("No high-confidence secrets detected")
+          PY
